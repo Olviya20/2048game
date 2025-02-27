@@ -21,6 +21,11 @@ import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.GestureDetectorCompat
+import com.example.a2048game.history.AppDatabase
+import com.example.a2048game.history.GameSession
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.Stack
 
 
@@ -29,6 +34,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var gridLayout: GridLayout
     private lateinit var gestureDetector: GestureDetectorCompat
     private var gridSize: Int = 4
+    private lateinit var db: AppDatabase
 
 
     private var score: Int = 0
@@ -42,6 +48,7 @@ class GameActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         gridSize = intent.getIntExtra("gridSize", 4)
+        db = AppDatabase.getInstance(this)
 
         gridLayout = binding.gridLayout
         gridLayout.columnCount = gridSize
@@ -75,6 +82,13 @@ class GameActivity : AppCompatActivity() {
         binding.cvUndo.alpha = 0.5f
 
         binding.cvHome.setOnClickListener {
+            CoroutineScope(Dispatchers.IO).launch {
+                val session = GameSession(score = score, date = System.currentTimeMillis())
+                db.gameSessionDao().insertSession(session)
+            }
+            if (score > loadHighScore()) {
+                saveHighScore(score)
+            }
             finish()
         }
 
@@ -128,6 +142,12 @@ class GameActivity : AppCompatActivity() {
         builder.setPositiveButton("Да") { dialog, which ->
             initGridUI()
             initGame()
+
+
+            CoroutineScope(Dispatchers.IO).launch {
+                val session = GameSession(score = score, date = System.currentTimeMillis())
+                db.gameSessionDao().insertSession(session)
+            }
 
             if (currentScore > loadHighScore()) {
                 saveHighScore(binding.tvScore.text.toString().toInt())
