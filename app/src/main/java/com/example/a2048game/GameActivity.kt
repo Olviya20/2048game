@@ -128,6 +128,7 @@ class GameActivity : AppCompatActivity() {
                 score = 0
             }
         }
+        //
 
 
         builder.setNegativeButton("Нет") { dialog, which ->
