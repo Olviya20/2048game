@@ -17,6 +17,7 @@ import kotlin.random.Random
 import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.MotionEvent
 import android.widget.ImageView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.GestureDetectorCompat
 import java.util.Stack
@@ -71,6 +72,29 @@ class GameActivity : AppCompatActivity() {
             undoMove()
         }
 
+        binding.cvReboot.setOnClickListener {
+            showResetConfirmationDialog()
+        }
+
+    }
+
+    private fun showResetConfirmationDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Подтверждение")
+        builder.setMessage("Вы уверены, что хотите начать заново?")
+
+        builder.setPositiveButton("Да") { dialog, which ->
+            initGridUI()
+            initGame()
+        }
+
+        builder.setNegativeButton("Нет") { dialog, which ->
+            // Действия при отмене
+            dialog.dismiss()
+        }
+
+        val dialog: AlertDialog = builder.create()
+        dialog.show()
     }
 
     private fun undoMove() {

@@ -46,8 +46,8 @@
         android:layout_marginBottom="10dp"
         android:backgroundTint="#d8cbbc"
         app:cardCornerRadius="10dp"
-        app:layout_constraintBottom_toTopOf="@+id/cardView3"
-        app:layout_constraintEnd_toEndOf="@+id/cardView3">
+        app:layout_constraintBottom_toTopOf="@+id/cvReboot"
+        app:layout_constraintEnd_toEndOf="@+id/cvReboot">
 
         <TextView
             android:layout_width="wrap_content"
@@ -97,7 +97,7 @@
         android:backgroundTint="#d8cbbc"
         app:cardCornerRadius="10dp"
         app:layout_constraintBottom_toTopOf="@+id/cardView"
-        app:layout_constraintEnd_toStartOf="@+id/cardView3">
+        app:layout_constraintEnd_toStartOf="@+id/cvReboot">
 
         <ImageView
             android:layout_width="30dp"
@@ -108,7 +108,7 @@
     </androidx.cardview.widget.CardView>
 
     <androidx.cardview.widget.CardView
-        android:id="@+id/cardView3"
+        android:id="@+id/cvReboot"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_marginBottom="10dp"
