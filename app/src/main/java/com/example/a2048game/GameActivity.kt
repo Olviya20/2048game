@@ -28,16 +28,24 @@ class GameActivity : AppCompatActivity() {
     private lateinit var binding: ActivityGameBinding
     private lateinit var gridLayout: GridLayout
     private lateinit var gestureDetector: GestureDetectorCompat
+    private var gridSize: Int = 4
+
 
     private var score: Int = 0
     private val previousStates: Stack<Array<Array<Tile>>> = Stack()
-    private var grid = Array(4) { Array(4) { Tile() } }
+    private var grid = Array(gridSize) { Array(gridSize) { Tile() } }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityGameBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        gridSize = intent.getIntExtra("gridSize", 4)
+
         gridLayout = binding.gridLayout
+        gridLayout.columnCount = gridSize
+        gridLayout.rowCount = gridSize
 
         initGridUI()
         initGame()
@@ -128,7 +136,6 @@ class GameActivity : AppCompatActivity() {
                 score = 0
             }
         }
-        //
 
 
         builder.setNegativeButton("Нет") { dialog, which ->
@@ -173,8 +180,8 @@ class GameActivity : AppCompatActivity() {
     private fun initGridUI() {
         gridLayout.removeAllViews()
 
-        for (r in 0 until 4) {
-            for (c in 0 until 4) {
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
                 val tileView = LayoutInflater.from(this)
                     .inflate(R.layout.tile_view, gridLayout, false) as FrameLayout
                 val params = GridLayout.LayoutParams().apply {
@@ -191,7 +198,7 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun initGame() {
-        grid = Array(4) { Array(4) { Tile() } }
+        grid = Array(gridSize) { Array(gridSize) { Tile() } }
         addRandomTile()
         addRandomTile()
         updateUI()
@@ -199,8 +206,8 @@ class GameActivity : AppCompatActivity() {
 
     private fun addRandomTile() {
         val emptyCells = mutableListOf<Pair<Int, Int>>()
-        for (r in 0 until 4) {
-            for (c in 0 until 4) {
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
                 if (grid[r][c].value == 0) emptyCells.add(Pair(r, c))
             }
         }
@@ -211,9 +218,9 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
-        for (r in 0 until 4) {
-            for (c in 0 until 4) {
-                val tileIndex = r * 4 + c
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
+                val tileIndex = r * gridSize + c
                 val tileView = gridLayout.getChildAt(tileIndex) as FrameLayout
                 val textView = tileView.findViewById<TextView>(R.id.tv_tile)
                 val value = grid[r][c].value
@@ -243,7 +250,7 @@ class GameActivity : AppCompatActivity() {
 
 
     private fun moveLeft() {
-        for (r in 0 until 4) {
+        for (r in 0 until gridSize) {
             val row = grid[r].filter { it.value != 0 }
             var merged = BooleanArray(row.size)
             var newRow = mutableListOf<Tile>()
@@ -262,7 +269,7 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            while (newRow.size < 4) {
+            while (newRow.size < gridSize) {
                 newRow.add(Tile(0))
             }
 
@@ -273,7 +280,7 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun moveRight() {
-        for (r in 0 until 4) {
+        for (r in 0 until gridSize) {
             val row = grid[r].reversed().filter { it.value != 0 }
             var merged = BooleanArray(row.size)
             var newRow = mutableListOf<Tile>()
@@ -292,7 +299,7 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            while (newRow.size < 4) {
+            while (newRow.size < gridSize) {
                 newRow.add(Tile(0))
             }
 
@@ -304,9 +311,9 @@ class GameActivity : AppCompatActivity() {
 
 
     private fun moveUp() {
-        for (c in 0 until 4) {
+        for (c in 0 until gridSize) {
             val column = mutableListOf<Tile>()
-            for (r in 0 until 4) {
+            for (r in 0 until gridSize) {
                 column.add(grid[r][c])
             }
 
@@ -328,11 +335,11 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            while (newColumn.size < 4) {
+            while (newColumn.size < gridSize) {
                 newColumn.add(Tile(0))
             }
 
-            for (r in 0 until 4) {
+            for (r in 0 until gridSize) {
                 grid[r][c] = newColumn[r]
             }
         }
@@ -342,9 +349,9 @@ class GameActivity : AppCompatActivity() {
 
 
     private fun moveDown() {
-        for (c in 0 until 4) {
+        for (c in 0 until gridSize) {
             val column = mutableListOf<Tile>()
-            for (r in 0 until 4) {
+            for (r in 0 until gridSize) {
                 column.add(grid[r][c])
             }
 
@@ -366,11 +373,11 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            while (newColumn.size < 4) {
+            while (newColumn.size < gridSize) {
                 newColumn.add(0, Tile(0))
             }
 
-            for (r in 0 until 4) {
+            for (r in 0 until gridSize) {
                 grid[r][c] = newColumn[r]
             }
         }
