@@ -1,0 +1,59 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Файлы сборки
+/build/
+/app/build/
+
+# Каталоги Gradle
+/.gradle/
+/app/.gradle/
+
+# Локальные настройки
+/local.properties
+
+# Файлы IntelliJ/Android Studio
+/.idea/
+/*.iml
+
+# Файлы журналов
+*.log
+
+# Файлы виртуальной машины Dalvik
+*.dex
+
+# Скомпилированные Java-классы
+*.class
+
+# Файлы APK
+*.apk
+*.ap_
+
+# Файлы кэша
+/captures/
+/.externalNativeBuild/
+
+# Файлы CMake
+.cxx/
+
+# Файлы настроек Crashlytics
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# Файлы Keystore (раскомментируйте, если не хотите включать их в репозиторий)
+/*.jks
+

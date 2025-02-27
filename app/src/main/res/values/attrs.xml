@@ -1,0 +1,5 @@
+<resources>
+    <declare-styleable name="TileView">
+        <attr name="colorTile" format="color"/>
+    </declare-styleable>
+</resources>

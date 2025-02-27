@@ -1,0 +1,328 @@
+package com.example.a2048game
+
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.graphics.Color
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import android.view.GestureDetector
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.FrameLayout
+import android.widget.GridLayout
+import android.widget.TextView
+import com.example.a2048game.databinding.ActivityGameBinding
+import kotlin.random.Random
+import android.view.GestureDetector.SimpleOnGestureListener
+import android.view.MotionEvent
+import android.widget.ImageView
+import androidx.core.content.ContextCompat
+import androidx.core.view.GestureDetectorCompat
+import java.util.Stack
+
+
+class GameActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityGameBinding
+    private lateinit var gridLayout: GridLayout
+    private lateinit var gestureDetector: GestureDetectorCompat
+
+    private val previousStates: Stack<Array<Array<Tile>>> = Stack()
+    private var grid = Array(4) { Array(4) { Tile() } }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityGameBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        gridLayout = binding.gridLayout
+
+        initGridUI()
+        initGame()
+
+        gestureDetector = GestureDetectorCompat(this, object : SwipeGestureListener(this) {
+            override fun onSwipeRight() {
+                saveState()
+                moveRight()
+            }
+
+            override fun onSwipeLeft() {
+                saveState()
+                moveLeft()
+            }
+
+            override fun onSwipeUp() {
+                saveState()
+                moveUp()
+            }
+
+            override fun onSwipeDown() {
+                saveState()
+                moveDown()
+            }
+        })
+
+        binding.cvUndo.alpha = 0.5f
+
+        binding.cvHome.setOnClickListener {
+            finish()
+        }
+
+        binding.cvUndo.setOnClickListener {
+            undoMove()
+        }
+
+    }
+
+    private fun undoMove() {
+        if (previousStates.isNotEmpty()) {
+            grid = previousStates.pop()
+            updateUI()
+            if (previousStates.isEmpty()) {
+                binding.cvUndo.alpha = 0.5f
+            }
+        }
+    }
+
+    private fun saveState() {
+        binding.cvUndo.alpha = 1f
+        val currentState = copyGrid()
+        previousStates.push(currentState)
+    }
+
+    private fun copyGrid(): Array<Array<Tile>> {
+        return Array(grid.size) { row ->
+            Array(grid[row].size) { col ->
+                val oldTile = grid[row][col]
+                Tile(oldTile.value)
+            }
+        }
+    }
+
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        gestureDetector.onTouchEvent(event)
+        return super.onTouchEvent(event)
+    }
+
+    private fun initGridUI() {
+        gridLayout.removeAllViews()
+
+        for (r in 0 until 4) {
+            for (c in 0 until 4) {
+                val tileView = LayoutInflater.from(this)
+                    .inflate(R.layout.tile_view, gridLayout, false) as FrameLayout
+                val params = GridLayout.LayoutParams().apply {
+                    width = 0
+                    height = 0
+                    columnSpec = GridLayout.spec(c, 1f)
+                    rowSpec = GridLayout.spec(r, 1f)
+                    setMargins(6, 6, 6, 6)
+                }
+                tileView.layoutParams = params
+                gridLayout.addView(tileView)
+            }
+        }
+    }
+
+    private fun initGame() {
+        grid = Array(4) { Array(4) { Tile() } }
+        addRandomTile()
+        addRandomTile()
+        updateUI()
+    }
+
+    private fun addRandomTile() {
+        val emptyCells = mutableListOf<Pair<Int, Int>>()
+        for (r in 0 until 4) {
+            for (c in 0 until 4) {
+                if (grid[r][c].value == 0) emptyCells.add(Pair(r, c))
+            }
+        }
+        if (emptyCells.isNotEmpty()) {
+            val (row, col) = emptyCells.random()
+            grid[row][col].value = if (Random.nextDouble() < 0.9) 2 else 4
+        }
+    }
+
+    private fun updateUI() {
+        for (r in 0 until 4) {
+            for (c in 0 until 4) {
+                val tileIndex = r * 4 + c
+                val tileView = gridLayout.getChildAt(tileIndex) as FrameLayout
+                val textView = tileView.findViewById<TextView>(R.id.tv_tile)
+                val value = grid[r][c].value
+
+                textView.text = if (value > 0) value.toString() else ""
+                tileView.setBackgroundColor(getTileColor(value))
+            }
+        }
+    }
+
+    private fun getTileColor(value: Int): Int {
+        return when (value) {
+            2 -> ContextCompat.getColor(this, R.color.tile_2)
+            4 -> ContextCompat.getColor(this, R.color.tile_4)
+            8 -> ContextCompat.getColor(this, R.color.tile_8)
+            16 -> ContextCompat.getColor(this, R.color.tile_16)
+            32 -> ContextCompat.getColor(this, R.color.tile_32)
+            64 -> ContextCompat.getColor(this, R.color.tile_64)
+            128 -> ContextCompat.getColor(this, R.color.tile_128)
+            256 -> ContextCompat.getColor(this, R.color.tile_256)
+            512 -> ContextCompat.getColor(this, R.color.tile_512)
+            1024 -> ContextCompat.getColor(this, R.color.tile_1024)
+
+            else -> ContextCompat.getColor(this, R.color.tile_empty)
+        }
+    }
+
+    private fun moveLeft() {
+        for (r in 0 until 4) {
+            val row = grid[r].filter { it.value != 0 }  // Игнорируем пустые клетки
+            var merged = BooleanArray(row.size)  // Для отслеживания слияний
+            var newRow = mutableListOf<Tile>()
+
+            var i = 0
+            while (i < row.size) {
+                if (i < row.size - 1 && row[i].value == row[i + 1].value && !merged[i] && !merged[i + 1]) {
+                    // Слияние плиток, если их значения одинаковые
+                    newRow.add(Tile(row[i].value * 2))
+                    merged[i] = true
+                    merged[i + 1] = true
+                    i += 2
+                } else {
+                    newRow.add(row[i])
+                    i++
+                }
+            }
+
+            // Заполняем оставшиеся места пустыми плитками
+            while (newRow.size < 4) {
+                newRow.add(Tile(0))
+            }
+
+            grid[r] = newRow.toTypedArray()
+        }
+        addRandomTile()  // Добавляем новую плитку после движения
+        updateUI()  // Обновляем UI
+    }
+
+    private fun moveRight() {
+        for (r in 0 until 4) {
+            // Переворачиваем строку, чтобы применить логику для движения влево
+            val row = grid[r].reversed().filter { it.value != 0 }
+            var merged = BooleanArray(row.size)  // Для отслеживания слияний
+            var newRow = mutableListOf<Tile>()
+
+            var i = 0
+            while (i < row.size) {
+                if (i < row.size - 1 && row[i].value == row[i + 1].value && !merged[i] && !merged[i + 1]) {
+                    // Слияние плиток, если их значения одинаковые
+                    newRow.add(Tile(row[i].value * 2))
+                    merged[i] = true
+                    merged[i + 1] = true
+                    i += 2
+                } else {
+                    newRow.add(row[i])
+                    i++
+                }
+            }
+
+            // Заполняем оставшиеся места пустыми плитками
+            while (newRow.size < 4) {
+                newRow.add(Tile(0))
+            }
+
+            // Переворачиваем строку обратно
+            grid[r] = newRow.reversed().toTypedArray()
+        }
+        addRandomTile()  // Добавляем новую плитку после движения
+        updateUI()  // Обновляем UI
+    }
+
+
+    private fun moveUp() {
+        for (c in 0 until 4) {
+            // Извлекаем колонку
+            val column = mutableListOf<Tile>()
+            for (r in 0 until 4) {
+                column.add(grid[r][c])
+            }
+
+            // Логика для движения вверх аналогична движению влево
+            val nonZeroTiles = column.filter { it.value != 0 }
+            var merged = BooleanArray(nonZeroTiles.size)
+            var newColumn = mutableListOf<Tile>()
+
+            var i = 0
+            while (i < nonZeroTiles.size) {
+                if (i < nonZeroTiles.size - 1 && nonZeroTiles[i].value == nonZeroTiles[i + 1].value && !merged[i] && !merged[i + 1]) {
+                    // Слияние плиток, если их значения одинаковые
+                    newColumn.add(Tile(nonZeroTiles[i].value * 2))
+                    merged[i] = true
+                    merged[i + 1] = true
+                    i += 2
+                } else {
+                    newColumn.add(nonZeroTiles[i])
+                    i++
+                }
+            }
+
+            // Заполняем оставшиеся места пустыми плитками
+            while (newColumn.size < 4) {
+                newColumn.add(Tile(0))
+            }
+
+            // Обновляем колонку в grid
+            for (r in 0 until 4) {
+                grid[r][c] = newColumn[r]
+            }
+        }
+        addRandomTile()  // Добавляем новую плитку после движения
+        updateUI()  // Обновляем UI
+    }
+
+
+    private fun moveDown() {
+        for (c in 0 until 4) {
+            // Извлекаем колонку
+            val column = mutableListOf<Tile>()
+            for (r in 0 until 4) {
+                column.add(grid[r][c])
+            }
+
+            // Логика для движения вниз аналогична движению вправо
+            val nonZeroTiles = column.filter { it.value != 0 }
+            var merged = BooleanArray(nonZeroTiles.size)
+            var newColumn = mutableListOf<Tile>()
+
+            var i = nonZeroTiles.size - 1
+            while (i >= 0) {
+                if (i > 0 && nonZeroTiles[i].value == nonZeroTiles[i - 1].value && !merged[i] && !merged[i - 1]) {
+                    // Слияние плиток, если их значения одинаковые
+                    newColumn.add(0, Tile(nonZeroTiles[i].value * 2))  // Добавляем в начало списка
+                    merged[i] = true
+                    merged[i - 1] = true
+                    i -= 2
+                } else {
+                    newColumn.add(0, nonZeroTiles[i])
+                    i--
+                }
+            }
+
+            // Заполняем оставшиеся места пустыми плитками
+            while (newColumn.size < 4) {
+                newColumn.add(0, Tile(0))
+            }
+
+            // Обновляем колонку в grid
+            for (r in 0 until 4) {
+                grid[r][c] = newColumn[r]
+            }
+        }
+        addRandomTile()  // Добавляем новую плитку после движения
+        updateUI()  // Обновляем UI
+    }
+
+
+}
+
