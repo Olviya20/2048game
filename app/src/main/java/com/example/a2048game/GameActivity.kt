@@ -2,6 +2,7 @@ package com.example.a2048game
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.content.Context
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -28,6 +29,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var gridLayout: GridLayout
     private lateinit var gestureDetector: GestureDetectorCompat
 
+    private var score: Int = 0
     private val previousStates: Stack<Array<Array<Tile>>> = Stack()
     private var grid = Array(4) { Array(4) { Tile() } }
 
@@ -76,20 +78,59 @@ class GameActivity : AppCompatActivity() {
             showResetConfirmationDialog()
         }
 
+        binding.tvRecordScore.text = loadHighScore().toString()
+        binding.tvScore.text = "0"
+
     }
+
+    private fun saveHighScore(newHighScore: Int) {
+        val sharedPreferences = getSharedPreferences("GamePrefs", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        binding.tvRecordScore.text = newHighScore.toString()
+        editor.putInt("HighScore", newHighScore)
+        editor.apply()
+    }
+
+    private fun loadHighScore(): Int {
+        val sharedPreferences = getSharedPreferences("GamePrefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getInt("HighScore", 0)
+    }
+
+    private fun addScore(value: Int) {
+        score += value
+        binding.tvScore.text = score.toString()
+
+        val currScore = binding.tvScore.text.toString()
+        val currRecordStore = binding.tvRecordScore.text.toString()
+
+        if (currScore.toInt() > currRecordStore.toInt()) {
+            binding.tvRecordScore.text = currScore
+        }
+    }
+
 
     private fun showResetConfirmationDialog() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Подтверждение")
         builder.setMessage("Вы уверены, что хотите начать заново?")
 
+        val currentScoreText = binding.tvScore.text.toString()
+        val currentScore = currentScoreText.toIntOrNull() ?: 0
+
         builder.setPositiveButton("Да") { dialog, which ->
             initGridUI()
             initGame()
+
+            if (currentScore > loadHighScore()) {
+                saveHighScore(binding.tvScore.text.toString().toInt())
+                binding.tvRecordScore.text = binding.tvScore.text
+                binding.tvScore.text = "0"
+                score = 0
+            }
         }
 
+
         builder.setNegativeButton("Нет") { dialog, which ->
-            // Действия при отмене
             dialog.dismiss()
         }
 
@@ -199,16 +240,17 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
+
     private fun moveLeft() {
         for (r in 0 until 4) {
-            val row = grid[r].filter { it.value != 0 }  // Игнорируем пустые клетки
-            var merged = BooleanArray(row.size)  // Для отслеживания слияний
+            val row = grid[r].filter { it.value != 0 }
+            var merged = BooleanArray(row.size)
             var newRow = mutableListOf<Tile>()
 
             var i = 0
             while (i < row.size) {
                 if (i < row.size - 1 && row[i].value == row[i + 1].value && !merged[i] && !merged[i + 1]) {
-                    // Слияние плиток, если их значения одинаковые
+                    addScore(row[i].value * 2)
                     newRow.add(Tile(row[i].value * 2))
                     merged[i] = true
                     merged[i + 1] = true
@@ -219,28 +261,26 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            // Заполняем оставшиеся места пустыми плитками
             while (newRow.size < 4) {
                 newRow.add(Tile(0))
             }
 
             grid[r] = newRow.toTypedArray()
         }
-        addRandomTile()  // Добавляем новую плитку после движения
-        updateUI()  // Обновляем UI
+        addRandomTile()
+        updateUI()
     }
 
     private fun moveRight() {
         for (r in 0 until 4) {
-            // Переворачиваем строку, чтобы применить логику для движения влево
             val row = grid[r].reversed().filter { it.value != 0 }
-            var merged = BooleanArray(row.size)  // Для отслеживания слияний
+            var merged = BooleanArray(row.size)
             var newRow = mutableListOf<Tile>()
 
             var i = 0
             while (i < row.size) {
                 if (i < row.size - 1 && row[i].value == row[i + 1].value && !merged[i] && !merged[i + 1]) {
-                    // Слияние плиток, если их значения одинаковые
+                    addScore(row[i].value * 2)
                     newRow.add(Tile(row[i].value * 2))
                     merged[i] = true
                     merged[i + 1] = true
@@ -251,28 +291,24 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            // Заполняем оставшиеся места пустыми плитками
             while (newRow.size < 4) {
                 newRow.add(Tile(0))
             }
 
-            // Переворачиваем строку обратно
             grid[r] = newRow.reversed().toTypedArray()
         }
-        addRandomTile()  // Добавляем новую плитку после движения
-        updateUI()  // Обновляем UI
+        addRandomTile()
+        updateUI()
     }
 
 
     private fun moveUp() {
         for (c in 0 until 4) {
-            // Извлекаем колонку
             val column = mutableListOf<Tile>()
             for (r in 0 until 4) {
                 column.add(grid[r][c])
             }
 
-            // Логика для движения вверх аналогична движению влево
             val nonZeroTiles = column.filter { it.value != 0 }
             var merged = BooleanArray(nonZeroTiles.size)
             var newColumn = mutableListOf<Tile>()
@@ -280,7 +316,7 @@ class GameActivity : AppCompatActivity() {
             var i = 0
             while (i < nonZeroTiles.size) {
                 if (i < nonZeroTiles.size - 1 && nonZeroTiles[i].value == nonZeroTiles[i + 1].value && !merged[i] && !merged[i + 1]) {
-                    // Слияние плиток, если их значения одинаковые
+                    addScore(nonZeroTiles[i].value * 2)
                     newColumn.add(Tile(nonZeroTiles[i].value * 2))
                     merged[i] = true
                     merged[i + 1] = true
@@ -291,30 +327,26 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            // Заполняем оставшиеся места пустыми плитками
             while (newColumn.size < 4) {
                 newColumn.add(Tile(0))
             }
 
-            // Обновляем колонку в grid
             for (r in 0 until 4) {
                 grid[r][c] = newColumn[r]
             }
         }
-        addRandomTile()  // Добавляем новую плитку после движения
-        updateUI()  // Обновляем UI
+        addRandomTile()
+        updateUI()
     }
 
 
     private fun moveDown() {
         for (c in 0 until 4) {
-            // Извлекаем колонку
             val column = mutableListOf<Tile>()
             for (r in 0 until 4) {
                 column.add(grid[r][c])
             }
 
-            // Логика для движения вниз аналогична движению вправо
             val nonZeroTiles = column.filter { it.value != 0 }
             var merged = BooleanArray(nonZeroTiles.size)
             var newColumn = mutableListOf<Tile>()
@@ -322,8 +354,8 @@ class GameActivity : AppCompatActivity() {
             var i = nonZeroTiles.size - 1
             while (i >= 0) {
                 if (i > 0 && nonZeroTiles[i].value == nonZeroTiles[i - 1].value && !merged[i] && !merged[i - 1]) {
-                    // Слияние плиток, если их значения одинаковые
-                    newColumn.add(0, Tile(nonZeroTiles[i].value * 2))  // Добавляем в начало списка
+                    addScore(nonZeroTiles[i].value * 2)
+                    newColumn.add(0, Tile(nonZeroTiles[i].value * 2))
                     merged[i] = true
                     merged[i - 1] = true
                     i -= 2
@@ -333,20 +365,16 @@ class GameActivity : AppCompatActivity() {
                 }
             }
 
-            // Заполняем оставшиеся места пустыми плитками
             while (newColumn.size < 4) {
                 newColumn.add(0, Tile(0))
             }
 
-            // Обновляем колонку в grid
             for (r in 0 until 4) {
                 grid[r][c] = newColumn[r]
             }
         }
-        addRandomTile()  // Добавляем новую плитку после движения
-        updateUI()  // Обновляем UI
+        addRandomTile()
+        updateUI()
     }
-
-
 }
 
