@@ -61,21 +61,25 @@ class GameActivity : AppCompatActivity() {
             override fun onSwipeRight() {
                 saveState()
                 moveRight()
+                checkGameOver()
             }
 
             override fun onSwipeLeft() {
                 saveState()
                 moveLeft()
+                checkGameOver()
             }
 
             override fun onSwipeUp() {
                 saveState()
                 moveUp()
+                checkGameOver()
             }
 
             override fun onSwipeDown() {
                 saveState()
                 moveDown()
+                checkGameOver()
             }
         })
 
@@ -104,6 +108,71 @@ class GameActivity : AppCompatActivity() {
         binding.tvScore.text = "0"
 
     }
+
+    private fun isGameOver(): Boolean {
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
+                if (grid[r][c].value == 2048) {
+                    return true
+                }
+                if (grid[r][c].value == 0) return false
+                if (c < gridSize - 1 && grid[r][c].value == grid[r][c + 1].value) return false
+                if (r < gridSize - 1 && grid[r][c].value == grid[r + 1][c].value) return false
+            }
+        }
+        return true
+    }
+
+    private fun isGameOverNoMoves(): Boolean {
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
+                if (grid[r][c].value == 0) return false
+                if (c < gridSize - 1 && grid[r][c].value == grid[r][c + 1].value) return false
+                if (r < gridSize - 1 && grid[r][c].value == grid[r + 1][c].value) return false
+            }
+        }
+        return true
+    }
+
+    private fun resetGame() {
+        initGridUI()
+        initGame()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val session = GameSession(score = score, date = System.currentTimeMillis())
+            db.gameSessionDao().insertSession(session)
+        }
+
+        if (score > loadHighScore()) {
+            saveHighScore(binding.tvScore.text.toString().toInt())
+            binding.tvRecordScore.text = binding.tvScore.text
+            binding.tvScore.text = "0"
+            score = 0
+        }
+    }
+
+
+    private fun checkGameOver() {
+        if (isGameOver()) {
+            AlertDialog.Builder(this)
+                .setTitle("Вы победили!")
+                .setMessage("Поздравляем, вы набрали плитку 2048!")
+                .setPositiveButton("Перезапустить") { _, _ ->
+                    resetGame()
+                }
+                .show()
+        } else if (isGameOverNoMoves()) {
+            AlertDialog.Builder(this)
+                .setTitle("Игра окончена")
+                .setMessage("Нет доступных ходов!")
+                .setPositiveButton("Перезапустить") { _, _ ->
+                    resetGame()
+                }
+                .show()
+        }
+    }
+
+
 
     private fun saveHighScore(newHighScore: Int) {
         val sharedPreferences = getSharedPreferences("GamePrefs", Context.MODE_PRIVATE)
@@ -136,25 +205,8 @@ class GameActivity : AppCompatActivity() {
         builder.setTitle("Подтверждение")
         builder.setMessage("Вы уверены, что хотите начать заново?")
 
-        val currentScoreText = binding.tvScore.text.toString()
-        val currentScore = currentScoreText.toIntOrNull() ?: 0
-
         builder.setPositiveButton("Да") { dialog, which ->
-            initGridUI()
-            initGame()
-
-
-            CoroutineScope(Dispatchers.IO).launch {
-                val session = GameSession(score = score, date = System.currentTimeMillis())
-                db.gameSessionDao().insertSession(session)
-            }
-
-            if (currentScore > loadHighScore()) {
-                saveHighScore(binding.tvScore.text.toString().toInt())
-                binding.tvRecordScore.text = binding.tvScore.text
-                binding.tvScore.text = "0"
-                score = 0
-            }
+            resetGame()
         }
 
 
